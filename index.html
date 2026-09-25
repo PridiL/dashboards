@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pridi Dashboards</title>
+<style>
+  :root{
+    color-scheme: light;
+    --plane:#f4f4f2; --bar:#ffffff; --ink:#15181b; --ink-2:#5b636b;
+    --muted:#8b939b; --line:#e2e5e8; --accent:#2a78d6;
+    --ok:#0f9d58; --warn:#c77700; --bad:#d03b3b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme: dark;
+      --plane:#0d0f11; --bar:#15181b; --ink:#f2f4f6; --ink-2:#c2c8ce;
+      --muted:#858d95; --line:#272c31; --accent:#4d94e8;
+      --ok:#3ddc97; --warn:#f0a83c; --bad:#ff6b7d;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; display:flex; flex-direction:column;
+    background:var(--plane); color:var(--ink);
+    font:400 13px/1.4 -apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+
+  /* ── top bar ── */
+  header{
+    flex:none; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:8px 14px; background:var(--bar); border-bottom:1px solid var(--line);
+  }
+  .brand{font-size:13px; font-weight:600; letter-spacing:-.1px; white-space:nowrap}
+  .brand span{color:var(--muted); font-weight:400}
+
+  .tabs{display:flex; gap:6px; flex-wrap:wrap}
+  .tab{
+    font:inherit; display:flex; align-items:center; gap:8px; cursor:pointer;
+    padding:6px 13px; border-radius:7px; border:1px solid var(--line);
+    background:transparent; color:var(--ink-2); white-space:nowrap;
+  }
+  .tab:hover{border-color:var(--accent); color:var(--ink)}
+  .tab[aria-selected="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+  .tab .dot{width:7px; height:7px; border-radius:50%; background:var(--muted); flex:none}
+  .tab[aria-selected="true"] .dot{box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+  .tab .age{font-size:11px; opacity:.8; font-variant-numeric:tabular-nums}
+
+  .right{margin-left:auto; display:flex; align-items:center; gap:8px}
+  .btn{
+    font:inherit; font-size:12px; padding:5px 11px; border-radius:7px; cursor:pointer;
+    border:1px solid var(--line); background:transparent; color:var(--ink-2);
+    text-decoration:none; display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--ink)}
+
+  /* ── frames ── */
+  main{flex:1; position:relative; min-height:0; background:var(--plane)}
+  iframe{position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--plane)}
+  iframe[hidden]{display:none}
+  .status{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:13px; gap:10px; text-align:center; padding:20px;
+  }
+  .status.hide{display:none}
+  .spin{
+    width:14px; height:14px; border-radius:50%; flex:none;
+    border:2px solid var(--line); border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media (max-width:700px){
+    header{gap:8px; padding:7px 10px}
+    .brand{width:100%}
+    .right{margin-left:0}
+    .tab .age{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Pridi Dashboards <span id="activeName"></span></div>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="right">
+    <button class="btn" id="reload" title="Reload the dashboard shown below">Reload</button>
+    <a class="btn" id="openNew" target="_blank" rel="noopener" title="Open this dashboard in its own tab">Open &#8599;</a>
+  </div>
+</header>
+
+<main id="main">
+  <div class="status" id="status"><span class="spin"></span><span id="statusText">Loading…</span></div>
+</main>
+
+<script>
+"use strict";
+/* Each dashboard is published by its own pipeline on its own schedule, so this
+   page frames the live pages rather than copying their data - nothing here can
+   go stale on its own. All three are on the same origin, so a HEAD request can
+   read each one's publish time and flag one whose job has stopped running. */
+const VIEWS = [
+  { key: "rrg", label: "Forex RRG",    name: "Forex rotation (RRG)",
+    url: "https://pridil.github.io/forex-rrg-dashboard/",  maxAgeH: 8,      cadence: "every 4h" },
+  { key: "fx",  label: "FX Sentiment", name: "Retail FX sentiment",
+    url: "https://pridil.github.io/fx-sentiment-dashboard/", maxAgeH: 36,   cadence: "daily 08:00" },
+  { key: "cot", label: "COT",          name: "Commitments of Traders",
+    url: "https://pridil.github.io/cot-dashboard/",         maxAgeH: 8 * 24, cadence: "weekly Sat" },
+];
+
+const tabsEl = document.getElementById("tabs");
+const mainEl = document.getElementById("main");
+const statusEl = document.getElementById("status");
+const statusText = document.getElementById("statusText");
+const frames = {};
+let active = null;
+
+/* ── tabs ── */
+tabsEl.innerHTML = VIEWS.map(v => `
+  <button class="tab" role="tab" id="tab-${v.key}" data-key="${v.key}" aria-selected="false"
+          title="${v.name} — updates ${v.cadence}">
+    <span class="dot" data-dot="${v.key}"></span>${v.label}
+    <span class="age" data-age="${v.key}"></span>
+  </button>`).join("");
+
+tabsEl.addEventListener("click", e => {
+  const btn = e.target.closest(".tab");
+  if (btn) show(btn.dataset.key);
+});
+
+/* ── show a view, creating its iframe the first time (the COT page is ~1.4 MB,
+      so loading all three up front would make the hub feel broken) ── */
+function show(key){
+  const view = VIEWS.find(v => v.key === key) || VIEWS[0];
+  active = view.key;
+
+  for (const v of VIEWS){
+    const tab = document.getElementById("tab-" + v.key);
+    tab.setAttribute("aria-selected", String(v.key === active));
+    if (frames[v.key]) frames[v.key].hidden = v.key !== active;
+  }
+  document.getElementById("activeName").textContent = "· " + view.name;
+  document.getElementById("openNew").href = view.url;
+  document.title = view.label + " · Pridi Dashboards";
+
+  if (!frames[view.key]){
+    statusText.textContent = "Loading " + view.name + "…";
+    statusEl.classList.remove("hide");
+    const f = document.createElement("iframe");
+    f.src = view.url;
+    f.title = view.name;
+    f.addEventListener("load", () => { if (active === view.key) statusEl.classList.add("hide"); });
+    f.addEventListener("error", () => {
+      statusText.textContent = "Could not load " + view.name + ". Try Open ↗.";
+      statusEl.querySelector(".spin").style.display = "none";
+    });
+    frames[view.key] = f;
+    mainEl.appendChild(f);
+  } else {
+    statusEl.classList.add("hide");
+  }
+
+  try { localStorage.setItem("pridi-dash-tab", active); } catch {}
+  if (location.hash.slice(1) !== active) history.replaceState(null, "", "#" + active);
+}
+
+document.getElementById("reload").addEventListener("click", () => {
+  const f = frames[active];
+  if (f){ statusText.textContent = "Reloading…"; statusEl.classList.remove("hide"); f.src = f.src; }
+});
+addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+/* ── freshness: each page's Last-Modified is when its pipeline last published ── */
+function ageLabel(h){
+  if (h < 1) return Math.max(1, Math.round(h * 60)) + "m";
+  if (h < 48) return Math.round(h) + "h";
+  return Math.round(h / 24) + "d";
+}
+async function stamps(){
+  await Promise.all(VIEWS.map(async v => {
+    const dot = document.querySelector(`[data-dot="${v.key}"]`);
+    const age = document.querySelector(`[data-age="${v.key}"]`);
+    try {
+      const r = await fetch(v.url, { method: "HEAD", cache: "no-store" });
+      const lm = r.headers.get("last-modified");
+      if (!lm) return;
+      const hours = (Date.now() - Date.parse(lm)) / 36e5;
+      age.textContent = ageLabel(hours);
+      const late = hours > v.maxAgeH;
+      dot.style.background = late ? (hours > v.maxAgeH * 2 ? "var(--bad)" : "var(--warn)") : "var(--ok)";
+      document.getElementById("tab-" + v.key).title =
+        `${v.name} — updates ${v.cadence}. Last published ${new Date(lm).toLocaleString()}`
+        + (late ? " — overdue" : "");
+    } catch { /* offline or opened from file:// - dots simply stay grey */ }
+  }));
+}
+
+show(location.hash.slice(1) || (() => {
+  try { return localStorage.getItem("pridi-dash-tab") || ""; } catch { return ""; }
+})());
+stamps();
+setInterval(stamps, 5 * 60 * 1000);
+</script>
+</body>
+</html>
