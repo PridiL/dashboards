@@ -193,7 +193,7 @@ async function stamps(){
       document.getElementById("tab-" + v.key).title =
         `${v.name} — updates ${v.cadence}. Last published ${new Date(lm).toLocaleString()}`
         + (late ? " — overdue" : "");
-    } catch { /* offline or opened from file:// - dots simply stay grey */ }
+    } catch { /* offline, or opened as a local copy rather than from the site - dots stay grey */ }
   }));
 }
 
