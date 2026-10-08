@@ -99,7 +99,7 @@
 "use strict";
 /* Each dashboard is published by its own pipeline on its own schedule, so this
    page frames the live pages rather than copying their data - nothing here can
-   go stale on its own. All three are on the same origin, so a HEAD request can
+   go stale on its own. All are on the same origin, so a HEAD request can
    read each one's publish time and flag one whose job has stopped running. */
 const VIEWS = [
   { key: "rrg", label: "Forex RRG",    name: "Forex rotation (RRG)",
@@ -107,7 +107,9 @@ const VIEWS = [
   { key: "fx",  label: "FX Sentiment", name: "Retail FX sentiment",
     url: "https://pridil.github.io/fx-sentiment-dashboard/", maxAgeH: 36,   cadence: "daily 08:00" },
   { key: "cot", label: "COT",          name: "Commitments of Traders",
-    url: "https://pridil.github.io/cot-dashboard/",         maxAgeH: 8 * 24, cadence: "weekly Sat" },
+    url: "https://pridil.github.io/cot-barchart-dashboard/", maxAgeH: 8 * 24, cadence: "weekly Sat" },
+  { key: "pair", label: "COT Pair Ratio", name: "COT pair ratio (base ÷ quote net)",
+    url: "https://pridil.github.io/cot-pair-ratio/",        maxAgeH: 8 * 24, cadence: "weekly Sat" },
 ];
 
 const tabsEl = document.getElementById("tabs");
@@ -131,7 +133,7 @@ tabsEl.addEventListener("click", e => {
 });
 
 /* ── show a view, creating its iframe the first time (the COT page is ~1.4 MB,
-      so loading all three up front would make the hub feel broken) ── */
+      so loading all of them up front would make the hub feel broken) ── */
 function show(key){
   const view = VIEWS.find(v => v.key === key) || VIEWS[0];
   active = view.key;
