@@ -110,6 +110,8 @@ const VIEWS = [
     url: "https://pridil.github.io/cot-barchart-dashboard/", maxAgeH: 8 * 24, cadence: "weekly Sat" },
   { key: "pair", label: "COT Pair Ratio", name: "COT pair ratio (base ÷ quote net)",
     url: "https://pridil.github.io/cot-pair-ratio/",        maxAgeH: 8 * 24, cadence: "weekly Sat" },
+  { key: "dist", label: "Daily Moves", name: "Daily move distributions vs normal",
+    url: "https://pridil.github.io/daily-move-distributions/", maxAgeH: null, cadence: "by hand" },
 ];
 
 const tabsEl = document.getElementById("tabs");
@@ -190,6 +192,11 @@ async function stamps(){
       if (!lm) return;
       const hours = (Date.now() - Date.parse(lm)) / 36e5;
       age.textContent = ageLabel(hours);
+      if (v.maxAgeH == null){   /* rebuilt by hand, never overdue: grey dot, age only */
+        document.getElementById("tab-" + v.key).title =
+          `${v.name} — static snapshot, rebuilt ${v.cadence}. Last published ${new Date(lm).toLocaleString()}`;
+        return;
+      }
       const late = hours > v.maxAgeH;
       dot.style.background = late ? (hours > v.maxAgeH * 2 ? "var(--bad)" : "var(--warn)") : "var(--ok)";
       document.getElementById("tab-" + v.key).title =
