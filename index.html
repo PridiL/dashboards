@@ -112,6 +112,9 @@ const VIEWS = [
     url: "https://pridil.github.io/cot-pair-ratio/",        maxAgeH: 8 * 24, cadence: "weekly Sat" },
   { key: "dist", label: "Forex Stats", name: "Forex Stats",
     url: "https://pridil.github.io/daily-move-distributions/", maxAgeH: null, cadence: "by hand" },
+  /* publishes Tue-Sat ~06:30 Bangkok (after each NY close), so Sat -> Tue is a 72h gap */
+  { key: "carry", label: "Rates & Carry", name: "FX rates & carry (2y spreads)",
+    url: "https://pridil.github.io/fx-rates-carry/",        maxAgeH: 76,   cadence: "Tue–Sat 06:30" },
 ];
 
 const tabsEl = document.getElementById("tabs");
