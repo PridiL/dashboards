@@ -118,6 +118,9 @@ const VIEWS = [
   /* publishes every day ~07:01 Bangkok (each run's snapshot time changes the page, so it always pushes) */
   { key: "cmeoi", label: "CME OI Levels", name: "CME options OI levels (CL, GC, SI, 6E)",
     url: "https://pridil.github.io/cme-oi-levels/",         maxAgeH: 30,   cadence: "daily 07:00" },
+  /* published by a laptop scheduled task after each 4H close, so a gap = laptop was off */
+  { key: "ai", label: "AI Desk", name: "AI Trade Desk (4-agent trade ideas)",
+    url: "https://pridil.github.io/ai-trade-desk/",         maxAgeH: 9,    cadence: "every 4h" },
 ];
 
 const tabsEl = document.getElementById("tabs");
