@@ -122,8 +122,8 @@ const VIEWS = [
   { key: "ai", label: "AI Desk", name: "AI Trade Desk (4-agent trade ideas)",
     url: "https://pridil.github.io/ai-trade-desk/",         maxAgeH: 9,    cadence: "every 4h" },
   /* same laptop task as the AI Desk (its step 1b), mechanical - no agents */
-  { key: "vwap", label: "RVWAP", name: "Rolling VWAP 4H-close cross signals",
-    url: "https://pridil.github.io/rvwap-signals/",         maxAgeH: 9,    cadence: "every 4h" },
+  { key: "vwap", label: "RVWAP", name: "Rolling VWAP: Daily VWAP, 1H and 4H RVWAP crosses",
+    url: "https://pridil.github.io/rvwap-signals/",         maxAgeH: 3,    cadence: "hourly" },
 ];
 
 const tabsEl = document.getElementById("tabs");
