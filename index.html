@@ -118,10 +118,7 @@ const VIEWS = [
   /* publishes every day ~07:01 Bangkok (each run's snapshot time changes the page, so it always pushes) */
   { key: "cmeoi", label: "CME OI Levels", name: "CME options OI levels (CL, GC, SI, 6E)",
     url: "https://pridil.github.io/cme-oi-levels/",         maxAgeH: 30,   cadence: "daily 07:00" },
-  /* published by a laptop scheduled task daily 00:00 Bangkok Tue-Sat, so Sat -> Tue is a 72h gap */
-  { key: "ai", label: "AI Desk", name: "AI Trade Desk (4-agent trade ideas)",
-    url: "https://pridil.github.io/ai-trade-desk/",         maxAgeH: 76,   cadence: "daily 00:00 Tue–Sat" },
-  /* same laptop task as the AI Desk (its step 1b), mechanical - no agents */
+  /* built hourly by GitHub Actions (repo PridiL/rvwap-signals), mechanical - no agents */
   { key: "vwap", label: "RVWAP", name: "Rolling VWAP: Daily VWAP, 1H and 4H RVWAP crosses",
     url: "https://pridil.github.io/rvwap-signals/",         maxAgeH: 3,    cadence: "hourly" },
 ];
